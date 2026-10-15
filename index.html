@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calculadora de exposición · E = 269·f² / (S·t)</title>
+<style>
+  :root{
+    --bg:#e9ede8; --panel:#f7f8f5; --ink:#12343b; --muted:#5c7075;
+    --line:#c3cdc8; --accent:#e0a526; --accent-ink:#2b1d00; --err:#a3341f;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#0e1d21; --panel:#14272c; --ink:#e6eee9; --muted:#8fa5a8;
+           --line:#2a4348; --accent:#e0a526; --accent-ink:#2b1d00; --err:#ff8f78; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif;line-height:1.5;
+       padding:24px 16px 48px}
+  main{max-width:640px;margin:0 auto}
+  h1{font-size:1.6rem;margin:0 0 4px;font-weight:700}
+  .formula{font-size:1.15rem;margin:0 0 20px;color:var(--muted);font-style:italic}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:16px}
+  .row{display:grid;grid-template-columns:1fr;gap:4px;margin-bottom:14px}
+  label{font-weight:700}
+  label small{font-weight:400;color:var(--muted)}
+  input{font:inherit;font-size:1.1rem;padding:10px 12px;border:1px solid var(--line);
+        border-radius:6px;background:var(--bg);color:var(--ink);width:100%}
+  input:focus-visible,button:focus-visible{outline:3px solid var(--accent);outline-offset:1px}
+  input.calc{border-color:var(--accent);border-width:2px;background:color-mix(in srgb,var(--accent) 14%,var(--bg))}
+  .inline{display:grid;grid-template-columns:1fr 112px;gap:8px}
+  select{font:inherit;font-size:1rem;padding:10px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
+  select:focus-visible{outline:3px solid var(--accent);outline-offset:1px}
+  .hint{font-size:.85rem;color:var(--muted)}
+  .actions{display:flex;gap:10px;flex-wrap:wrap}
+  button{font:inherit;font-weight:700;padding:10px 16px;border-radius:6px;cursor:pointer;
+         border:1px solid var(--ink);background:transparent;color:var(--ink)}
+  button.main{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+  .result{min-height:96px}
+  .big{font-size:2.2rem;font-weight:700;line-height:1.1}
+  .big span{font-size:1.1rem;font-weight:400;color:var(--muted)}
+  .used{margin-top:10px;font-style:italic;color:var(--muted)}
+  .error{color:var(--err);font-weight:700}
+  .cine{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  h2{font-size:1.1rem;margin:0 0 10px}
+  @media(max-width:480px){.cine{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Calculadora de exposición</h1>
+  <p class="formula">E = 269 · f² / (S · t)</p>
+
+  <section class="panel" aria-label="Datos">
+    <p class="hint" style="margin-top:0">Llena tres campos y deja vacío el que quieras calcular.</p>
+
+    <div class="row">
+      <label for="E">Exposición E <small>(lux u otra unidad)</small></label>
+      <div class="inline">
+        <input id="E" inputmode="decimal" autocomplete="off" placeholder="ej. 400, 40fc o 0.4klux">
+        <select id="unitE" aria-label="Unidad de exposición">
+          <option value="lux">lux</option><option value="klux">klux</option>
+          <option value="fc">fc (foot-candle)</option><option value="phot">phot</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <label for="f">Diafragma f <small>(número f)</small></label>
+      <input id="f" inputmode="decimal" autocomplete="off" placeholder="ej. 2.8, f/2.8 o 28/10">
+    </div>
+    <div class="row">
+      <label for="S">Sensibilidad S <small>(ISO)</small></label>
+      <input id="S" inputmode="decimal" autocomplete="off" placeholder="ej. 800">
+    </div>
+    <div class="row">
+      <label for="t">Tiempo de apertura t <small>(fracción, segundos, min u horas)</small></label>
+      <div class="inline">
+        <input id="t" inputmode="decimal" autocomplete="off" placeholder="ej. 1/48, 0.0208, 2min">
+        <select id="unitT" aria-label="Unidad de tiempo">
+          <option value="s">segundos</option><option value="ms">ms</option>
+          <option value="min">minutos</option><option value="h">horas</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="main" id="go" type="button">Calcular</button>
+      <button id="clear" type="button">Limpiar</button>
+    </div>
+  </section>
+
+  <section class="panel result" id="out" aria-live="polite">
+    <span class="hint">El resultado aparece aquí.</span>
+  </section>
+
+  <section class="panel" aria-label="Ayuda de cine">
+    <h2>Tiempo desde fps y ángulo de obturador</h2>
+    <div class="cine">
+      <div class="row" style="margin:0">
+        <label for="fps">Cuadros por segundo</label>
+        <input id="fps" inputmode="decimal" value="24">
+      </div>
+      <div class="row" style="margin:0">
+        <label for="ang">Ángulo (°)</label>
+        <input id="ang" inputmode="decimal" value="180">
+      </div>
+    </div>
+    <p class="hint" id="cineOut" style="margin:10px 0">t = 1 / (fps × 360 / ángulo)</p>
+    <button id="useT" type="button">Usar este tiempo</button>
+  </section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const ids = ['E','f','S','t'];
+const STOPS_F = [1,1.4,2,2.8,4,5.6,8,11,16,22,32];
+const THIRDS = [1,1.1,1.2,1.4,1.6,1.8,2,2.2,2.5,2.8,3.2,3.5,4,4.5,5,5.6,6.3,7.1,8,9,10,11,13,14,16,18,20,22,25,29,32];
+const UNITS = {
+  E:{lux:1, lx:1, klux:1000, klx:1000, fc:10.7639, ftc:10.7639, phot:10000},
+  t:{ms:0.001, s:1, seg:1, sec:1, '"':1, min:60, h:3600}
+};
+const SUFFIX = {
+  E:/^(.*?)\s*(klux|klx|lux|lx|ftc|fc|phot)?$/,
+  t:/^(.*?)\s*(ms|min|seg|sec|h|s|")?$/
+};
+// Lee el campo; si trae unidad escrita (ej. 2min, 40fc) esa manda, si no, la del selector
+function parseField(i){
+  const raw = $(i).value;
+  if(!raw.trim()) return null;
+  if(i!=='E' && i!=='t') return parse(raw);
+  const m = raw.trim().toLowerCase().match(SUFFIX[i]);
+  const base = parse(m[1]);
+  if(base===null || Number.isNaN(base)) return NaN;
+  const unit = m[2] || $(i==='E'?'unitE':'unitT').value;
+  return base * UNITS[i][unit];
+}
+function eExtra(res){
+  const u = $('unitE').value, pcs = [];
+  if(u!=='lux') pcs.push(`${fmt(res/UNITS.E[u])} ${u}`);
+  if(u!=='fc') pcs.push(`${fmt(res/UNITS.E.fc)} fc`);
+  return `<div class="hint">Equivale a ${pcs.join(' · ')}</div>`;
+}
+function tExtra(res){
+  const u = $('unitT').value, pcs = [];
+  if(res<1) pcs.push(fracText(res));
+  if(u!=='s' && u!=='min') pcs.push(`${fmt(res/UNITS.t[u])} ${u}`);
+  if(res>=60) pcs.push(`${fmt(res/60)} min`);
+  if(res>=3600) pcs.push(`${fmt(res/3600)} h`);
+  return pcs.length ? `<div class="hint">Equivale a ${pcs.join(' · ')}</div>` : '';
+}
+const STOPS_ISO = [25,50,100,200,400,800,1600,3200,6400,12800];
+
+// Acepta "2.8", "2,8", "f/2.8", "1/48", "1 / 48", "0.02s", "1/48 s"
+function parse(raw){
+  let s = raw.trim().toLowerCase().replace(',', '.').replace(/\s+/g,'');
+  if(!s) return null;
+  s = s.replace(/^f\/?/, '').replace(/(seg|sec|s|")$/,'');
+  let v;
+  if(s.includes('/')){
+    const p = s.split('/');
+    if(p.length !== 2) return NaN;
+    v = parseFloat(p[0]) / parseFloat(p[1]);
+  } else v = Number(s);
+  return (isFinite(v) && v > 0) ? v : NaN;
+}
+
+const fmt = (n, d=3) => Number(n.toPrecision(d)).toString();
+
+function nearest(v, list){
+  return list.reduce((a,b)=> Math.abs(Math.log(b/v)) < Math.abs(Math.log(a/v)) ? b : a);
+}
+
+function fracText(t){
+  if(t >= 1) return fmt(t) + ' s';
+  return '1/' + fmt(1/t, 4) + ' s';
+}
+
+function calculate(){
+  const out = $('out');
+  ids.forEach(i => $(i).classList.remove('calc'));
+  const vals = {}, empty = [];
+  for(const i of ids){
+    const v = parseField(i);
+    if(v === null) empty.push(i);
+    else if(Number.isNaN(v)){
+      out.innerHTML = `<span class="error">Revisa el campo «${i}»: usa un número positivo o una fracción como 1/48.</span>`;
+      return;
+    } else vals[i] = v;
+  }
+  if(empty.length === 0){
+    out.innerHTML = '<span class="hint">Deja un campo vacío para calcularlo.</span>'; return;
+  }
+  if(empty.length > 1){
+    out.innerHTML = '<span class="hint">Faltan datos: necesito tres valores para calcular el cuarto.</span>'; return;
+  }
+  const k = 269, {E,f,S,t} = vals;
+  const target = empty[0];
+  let res, formula, html;
+  if(target==='E'){ res = k*f*f/(S*t); formula='E = 269·f² / (S·t)';
+    html = `<div class="big">${fmt(res)} <span>lux</span></div>` + eExtra(res); }
+  if(target==='f'){ res = Math.sqrt(E*S*t/k); formula='f = √(E·S·t / 269)';
+    html = `<div class="big">f/${fmt(res,3)}</div><div class="hint">Diafragma estándar más cercano: f/${nearest(res,STOPS_F)}</div><div class="hint">Tercio de paso más cercano: f/${nearest(res,THIRDS)}</div>`; }
+  if(target==='S'){ res = k*f*f/(E*t); formula='S = 269·f² / (E·t)';
+    html = `<div class="big">${fmt(res,4)} <span>ISO</span></div><div class="hint">ISO estándar más cercano: ${nearest(res,STOPS_ISO)}</div>`; }
+  if(target==='t'){ res = k*f*f/(E*S); formula='t = 269·f² / (E·S)';
+    html = `<div class="big">${fmt(res,4)} <span>segundos</span></div>` + tExtra(res); }
+  $(target).classList.add('calc');
+  out.innerHTML = html + `<div class="used">Fórmula usada: ${formula}</div>`;
+}
+
+function cineT(){
+  const fps = parse($('fps').value), ang = parse($('ang').value);
+  if(!fps || !ang || Number.isNaN(fps) || Number.isNaN(ang)){ $('cineOut').textContent='Ingresa fps y ángulo válidos.'; return null; }
+  const t = ang/(360*fps);
+  $('cineOut').textContent = `t = ${fracText(t)} (${fmt(t,4)} s)`;
+  return t;
+}
+
+$('go').addEventListener('click', calculate);
+$('clear').addEventListener('click', ()=>{ ids.forEach(i=>{$(i).value='';}); calculate(); $('out').innerHTML='<span class="hint">El resultado aparece aquí.</span>'; });
+ids.forEach(i => $(i).addEventListener('input', calculate));
+['unitE','unitT'].forEach(i => $(i).addEventListener('change', calculate));
+['fps','ang'].forEach(i => $(i).addEventListener('input', cineT));
+$('useT').addEventListener('click', ()=>{ const t = cineT(); if(t){ $('unitT').value='s'; $('t').value = fmt(t,5); calculate(); } });
+cineT();
+</script>
+</body>
+</html>
